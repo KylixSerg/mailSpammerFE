@@ -1,27 +1,58 @@
 import React from "react";
 import EmailEditor from "react-email-editor";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import axios from "axios";
+
+const token = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhYi5zZXJnaGluZUBnbWFpbC5jb20iLCJleHAiOjE2NjM4OTUxMDEsImlhdCI6MTY2Mzg3NzEwMX0.2GCxpObuu4EUJaYNWB0zWNbaMTwEJgkmDPFKi5De6EcwfE5TIw49LPO7RcpXjaOHgTbQrFVayEF5giy5YUkalA'
+
+// service
+async function getData () {
+  const url = `/api/v1/templates/8`
+  const config = {
+    headers: { Authorization: `Bearer ${token}` }
+  };
+  const res = await axios.get(url, config);
+  return res.data;
+};
 
 const MailEditor = () => {
   const emailEditorRef = useRef(null);
+  const [html, setHtml] = useState('');
+  const [json, setJson] = useState('');
 
 
-  const exportHtml = () => {
+  const exportAtrributes = () => {
     emailEditorRef.current.editor.exportHtml((data) => {
-      // eslint-disable-next-line no-unused-vars
       const { design, html } = data;
-
-      console.log("exportHtml", html);
+      setJson(design);
+      setHtml(html);
     });
   };
 
-  const exportJson = () => {
-    emailEditorRef.current.editor.saveDesign((design) => {
-      // eslint-disable-next-line no-unused-vars
+  const exportTemplate = () => {
+    if (json === '' || html === ''){
+      console.log("Both html and json needed");
+      return
+    }
 
-      console.log("exportDesign", design);
-    });
-  };
+    const url = '/api/v1/templates';
+    const data = {
+      htmlEmail: html,
+      jsonEmail: JSON.stringify(json),
+      templateOwnerId: 1,
+      emailRecipients: [] 
+    }
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
+    console.log(data)
+    axios.post( 
+      url,
+      data,
+      config
+    ).then(console.log).catch(console.log);
+
+  }
 
   const mystyle = {
     color: "white",
@@ -30,12 +61,10 @@ const MailEditor = () => {
     fontFamily: "Arial",
   };
 
-  const onLoad = () => {
-    // editor instance is created
-    // you can load your template here;
-    // const templateJson = {};
-    // emailEditorRef.current.editor.loadDesign(templateJson);
-    console.log("onLoad");
+  async function onLoad () {
+    const data = await getData();
+    console.log(data['jsonEmail'])
+    emailEditorRef.current.editor.loadDesign(data['jsonEmail']);
   };
 
   const onReady = () => {
@@ -46,10 +75,10 @@ const MailEditor = () => {
   return (
     <div>
       <div>
-        <button onClick={exportHtml}>Export HTML</button>
+        <button onClick={() => exportAtrributes()}>Export json/html</button>
       </div>
       <div>
-        <button onClick={exportJson}>Export JSON</button>
+        <button onClick={() => exportTemplate()}>Save Template</button>
       </div>
 
       <EmailEditor
